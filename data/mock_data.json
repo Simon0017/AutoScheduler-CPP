@@ -1,0 +1,69 @@
+{
+  "startDate": "2026-02-01",
+  "endDate": "2026-03-15",
+  "dailyHours": {
+    "start": 8,
+    "end": 17
+  },
+  "workingDays": [1, 2, 3, 4, 5],
+  "breakBetweenLessons": 15,
+  "lessons": [
+    {
+      "id": 1,
+      "name": "101.Introduction to Python Programming",
+      "totalHours": 4,
+      "sessionDuration": 120,
+      "priority": "high",
+      "description": "Basic Python syntax and fundamentals"
+    },
+    {
+      "id": 2,
+      "name": "102.Data Structures and Algorithms",
+      "totalHours": 6,
+      "sessionDuration": 90,
+      "priority": "high",
+      "description": "Arrays, linked lists, trees, and sorting algorithms"
+    },
+    {
+      "id": 3,
+      "name": "103.Web Development Basics",
+      "totalHours": 3.5,
+      "sessionDuration": 60,
+      "priority": "medium",
+      "description": "HTML, CSS, and JavaScript fundamentals"
+    },
+    {
+      "id": 4,
+      "name": "104.Database Management Systems",
+      "totalHours": 5,
+      "sessionDuration": 90,
+      "priority": "medium",
+      "description": "SQL queries and database design"
+    },
+    {
+      "id": 5,
+      "name": "105.Object-Oriented Programming",
+      "totalHours": 4.5,
+      "sessionDuration": 90,
+      "priority": "high",
+      "description": "Classes, objects, inheritance, and polymorphism"
+    },
+    {
+      "id": 6,
+      "name": "106.API Development with REST",
+      "totalHours": 3,
+      "sessionDuration": 60,
+      "priority": "low",
+      "description": "Building RESTful APIs"
+    },
+    {
+      "id": 7,
+      "name": "107.Testing and Debugging",
+      "totalHours": 2.5,
+      "sessionDuration": 75,
+      "priority": "medium",
+      "description": "Unit testing and debugging techniques"
+    }
+  ],
+  "room": "CS-101"
+}
