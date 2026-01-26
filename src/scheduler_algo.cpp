@@ -16,6 +16,8 @@ using namespace std::chrono;
 
 using json = nlohmann::json;
 
+string format_time(time_t time);
+
 scheduler_algorithm::scheduler_algorithm(vector<json> lessons,json preferences){
     this->lessons = lessons;
     this->preferences = preferences;
@@ -135,12 +137,12 @@ void scheduler_algorithm::assign_lessons_to_slots(vector<json> lessons,vector<js
             if (optimal_slot["available"].get<bool>())
             {
                 this->generated_schedule.push_back({
-                    {"lesson_id",lesson["id"]},
-                    {"lesson_name",lesson["name"]},
-                    {"start",optimal_slot["start"]},
-                    {"end",optimal_slot["end"]},
-                    {"priority",optimal_slot["priority"]},
-                    {"description",lesson["description"]}
+                    {"ID",lesson["id"]},
+                    {"Title",lesson["name"]},
+                    {"Start",format_time(optimal_slot["start"].get<time_t>())},
+                    {"End",format_time(optimal_slot["end"].get<time_t>())},
+                    {"Priority",optimal_slot["priority"]},
+                    {"Description",lesson["description"]}
                 });
 
                 used_slots.insert(optimal_slot);
@@ -230,3 +232,10 @@ double scheduler_algorithm::score_time_slot(json slot,json lesson){
 };
 
 
+string format_time(time_t time){
+    char buffer[64];
+    tm local{};
+    localtime_s(&local,&time);
+    strftime(buffer,sizeof(buffer),"%Y-%m-%d %A %I:%M %p",&local);
+    return string(buffer);
+}
