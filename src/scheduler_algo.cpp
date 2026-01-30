@@ -17,6 +17,7 @@ using namespace std::chrono;
 using json = nlohmann::json;
 
 string format_time(time_t time);
+time_t parse_time_from_str(const string& time_str);
 
 scheduler_algorithm::scheduler_algorithm(vector<json> lessons,json preferences){
     this->lessons = lessons;
@@ -32,7 +33,9 @@ vector<json> scheduler_algorithm::generate_schedule(){
 
     assign_lessons_to_slots(sorted_lessons,time_slots);
 
-    return this->generated_schedule;
+    vector<json> ordered_schedule = order_schedule_by_datetime(this->generated_schedule);
+
+    return ordered_schedule;
 }
 
 vector<json> scheduler_algorithm::prioritize_lessons(vector<json> lessons){
@@ -127,35 +130,42 @@ void scheduler_algorithm::assign_lessons_to_slots(vector<json> lessons,vector<js
 
     for (const auto& lesson:lessons)
     {
-        int sessions_needed = (int)(lesson["totalHours"].get<double>() * 60 / lesson["sessionDuration"].get<int>());
+        int sessions_needed = static_cast<int>(lesson["totalHours"].get<double>() * 60 / lesson["sessionDuration"].get<int>());
         int sessions_assigned = 0;
+
+        int session_duration = lesson["sessionDuration"].get<int>();
+        double total_hours = lesson["totalHours"].get<double>();
 
         for (size_t i = 0; i < sessions_needed; i++)
         {
             json optimal_slot = find_optimal_slot(lesson,time_slots,used_slots);
 
-            if (optimal_slot["available"].get<bool>())
-            {
+            if (!optimal_slot.is_null() && !optimal_slot.empty())
+            {   
+                int remaining_minutes = static_cast<int>(
+                    (total_hours - (sessions_assigned * session_duration / 60.0)) * 60
+                );
+
+                int lesson_duration = std::min(session_duration,remaining_minutes);
+
+                typedef duration<int,ratio<60>> minutes; // definition of minutes
+
+                time_t start_time = optimal_slot["start"].get<time_t>();
+                auto end_tp = system_clock::from_time_t(start_time);
+                end_tp += minutes(lesson_duration);
+
+                time_t end_time = system_clock::to_time_t(end_tp);
+
                 this->generated_schedule.push_back({
                     {"ID",lesson["id"]},
                     {"Title",lesson["name"]},
-                    {"Start",format_time(optimal_slot["start"].get<time_t>())},
-                    {"End",format_time(optimal_slot["end"].get<time_t>())},
-                    {"Priority",optimal_slot["priority"]},
+                    {"Start",format_time(start_time)},
+                    {"End",format_time(end_time)},
+                    {"Priority",lesson["priority"]},
                     {"Description",lesson["description"]}
                 });
 
-                used_slots.insert(optimal_slot);
-
-                // Mark the slot as used
-                for (auto& slot:time_slots)
-                {
-                    if (slot["start"] == optimal_slot["start"])
-                    {
-                        slot["available"] = false;
-                        break;
-                    }
-                }
+                mark_slot_as_used(optimal_slot,lesson_duration,used_slots,time_slots);
 
                 sessions_assigned++;
             }
@@ -166,6 +176,30 @@ void scheduler_algorithm::assign_lessons_to_slots(vector<json> lessons,vector<js
     
 
 };
+
+void scheduler_algorithm::mark_slot_as_used(json& slot,int session_duration,set<json>& used_slots,vector<json>& time_slots){
+    time_t start_time = slot["start"].get<time_t>();
+    int break_btwn_lessons = this->preferences["break_between_lessons"].get<int>();
+    
+    typedef duration<int,ratio<60>> minutes; // definition of minutes
+
+    auto end_tp = system_clock::from_time_t(start_time);
+    end_tp += minutes(session_duration);
+    end_tp += minutes(break_btwn_lessons);
+
+    time_t end_time = system_clock::to_time_t(end_tp);
+
+    for (const auto& slot:time_slots)
+    {
+        time_t slot_start_tm = slot["start"].get<time_t>();
+        if ( slot_start_tm >= start_time and slot_start_tm < end_time )
+        {
+            used_slots.insert(slot);
+        }
+        
+    }
+    
+}
 
 json scheduler_algorithm::find_optimal_slot(json lesson,vector<json> time_slots,set<json>& used_slots){
     int best_score = -1;
@@ -231,6 +265,16 @@ double scheduler_algorithm::score_time_slot(json slot,json lesson){
     return score;
 };
 
+vector<json> scheduler_algorithm::order_schedule_by_datetime(vector<json> schedule){
+    sort(schedule.begin(),schedule.end(),
+        [](const json& a,const json& b){
+            time_t a_time = parse_time_from_str(a["Start"].get<string>());
+            time_t b_time = parse_time_from_str(b["Start"].get<string>());
+            return a_time < b_time;
+        });
+
+    return schedule;
+}
 
 string format_time(time_t time){
     char buffer[64];
@@ -238,4 +282,27 @@ string format_time(time_t time){
     localtime_s(&local,&time);
     strftime(buffer,sizeof(buffer),"%Y-%m-%d %A %I:%M %p",&local);
     return string(buffer);
+}
+
+time_t parse_time_from_str(const string& time_str){
+    std::tm t{};
+    int year, month, day, hour, minute;
+    char ampm[3];
+
+    sscanf_s(time_str.c_str(), "%d-%d-%d %*s %d:%d %2s",
+             &year, &month, &day, &hour, &minute,
+             ampm, (unsigned)_countof(ampm));
+
+    t.tm_year = year - 1900;
+    t.tm_mon  = month - 1;
+    t.tm_mday = day;
+    t.tm_min  = minute;
+    t.tm_sec  = 0;
+
+    if (strcmp(ampm, "PM") == 0 && hour != 12) hour += 12;
+    if (strcmp(ampm, "AM") == 0 && hour == 12) hour = 0;
+
+    t.tm_hour = hour;
+
+    return mktime(&t);
 }

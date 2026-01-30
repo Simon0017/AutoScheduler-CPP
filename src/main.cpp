@@ -1,3 +1,8 @@
+/*
+__AUTHOR__: Simon Wekesa
+Smart Scheduler Main File
+*/
+
 #include<iostream>
 #include<fstream>
 #include<vector>

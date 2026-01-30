@@ -27,7 +27,9 @@ public:
     vector<json> generate_time_slots();
     vector<json> generate_day_slots(time_t current_date,json daily_hours);
     void assign_lessons_to_slots(vector<json> lessons,vector<json> time_slots);
+    void mark_slot_as_used(json& slot,int session_duration,set<json>& used_slots,vector<json>& time_slots);
     json find_optimal_slot(json lesson,vector<json> time_slots,set<json>& used_slots);
     double score_time_slot(json slot,json lesson);
+    vector<json> order_schedule_by_datetime(vector<json> schedule);
 
 };
